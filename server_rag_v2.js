@@ -1,94 +1,95 @@
-const express=require("express");
-const multer=require("multer");
-const fs=require("fs");
-const path=require("path");
-const pdfParse=require("pdf-parse");
-const cors=require("cors");
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const fs = require("fs");
+const pdfParse = require("pdf-parse");
 
-const app=express();
+const app = express();
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 app.use(express.static(__dirname));
 
-const uploadDir=path.join(__dirname,"uploads");
+const upload = multer({
+  dest: "uploads/"
+});
 
-if(!fs.existsSync(uploadDir)){
-fs.mkdirSync(uploadDir);
-}
+let pdfText = "";
 
-const storage=multer.diskStorage({
 
-destination:function(req,file,cb){
-cb(null,uploadDir);
-},
+app.post("/upload", upload.single("pdf"), async (req, res) => {
 
-filename:function(req,file,cb){
-cb(null,"Onboarding.pdf");
-}
+  try {
+
+    const filePath = req.file.path;
+
+    const dataBuffer = fs.readFileSync(filePath);
+
+    const data = await pdfParse(dataBuffer);
+
+    pdfText = data.text;
+
+    res.json({
+      message: "PDF uploaded successfully"
+    });
+
+  }
+  catch (error) {
+
+    res.status(500).json({
+      message: "Error uploading PDF"
+    });
+
+  }
 
 });
 
-const upload=multer({storage});
 
-app.post("/upload",upload.single("pdf"),(req,res)=>{
 
-res.json({
-message:"PDF uploaded successfully"
-});
+app.post("/ask", async (req, res) => {
 
-});
+  try {
 
-app.post("/ask",async(req,res)=>{
+    const question = req.body.question.toLowerCase();
 
-try{
+    const paragraphs = pdfText.split("\n");
 
-const question=req.body.question.toLowerCase();
+    let answer = "Answer not found in SOP document";
 
-const pdfPath=path.join(__dirname,"uploads","Onboarding.pdf");
 
-const buffer=fs.readFileSync(pdfPath);
+    for (let para of paragraphs) {
 
-const data=await pdfParse(buffer);
+      if (para.toLowerCase().includes(question)) {
 
-const lines=data.text.split("\n");
+        answer = para;
+        break;
 
-let result="Answer not found in SOP";
+      }
 
-for(let i=0;i<lines.length;i++){
+    }
 
-if(lines[i].toLowerCase().includes(question)){
 
-result=
-lines[i]+"\n"+
-(lines[i+1]||"")+"\n"+
-(lines[i+2]||"");
+    res.json({
+      answer: answer
+    });
 
-break;
+  }
+  catch (error) {
 
-}
+    res.status(500).json({
+      answer: "Error processing request"
+    });
 
-}
-
-res.json({
-answer:result
-});
-
-}
-catch(error){
-
-res.json({
-answer:"Error processing request"
-});
-
-}
+  }
 
 });
 
-const PORT=3001;
 
-app.listen(PORT,()=>{
 
-console.log("Server running on port "+PORT);
+const PORT = 3000;
+
+app.listen(PORT, () => {
+
+  console.log(`Server running on port ${PORT}`);
 
 });
