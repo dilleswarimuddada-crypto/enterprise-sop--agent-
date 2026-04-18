@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Enterprise SOP Agent</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#f5f5f5;
+padding:20px;
+}
+
+.container{
+width:400px;
+margin:auto;
+}
+
+.box{
+background:white;
+padding:15px;
+border-radius:8px;
+margin-bottom:15px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.chatbox{
+height:300px;
+overflow-y:auto;
+border:1px solid #ddd;
+padding:10px;
+margin-bottom:10px;
+}
+
+.message{
+padding:8px;
+margin:5px 0;
+border-radius:5px;
+}
+
+.user{
+background:#d1e7dd;
+text-align:right;
+}
+
+.bot{
+background:#e2e3e5;
+}
+
+input[type=text]{
+width:75%;
+padding:8px;
+}
+
+button{
+padding:8px 12px;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+<h2>Enterprise SOP Agent</h2>
+
+
+<div class="box">
+
+<h3>Upload SOP</h3>
+
+<input type="file" id="pdfFile">
+
+<button onclick="uploadPDF()">Upload</button>
+
+<p id="uploadStatus"></p>
+
+</div>
+
+
+<div class="box">
+
+<h3>Chat</h3>
+
+<div class="chatbox" id="chatbox"></div>
+
+<input type="text" id="question" placeholder="Type question">
+
+<button onclick="askQuestion()">Send</button>
+
+</div>
+
+
+</div>
+
+
+
+<script>
+
+async function uploadPDF(){
+
+const file=document.getElementById("pdfFile").files[0];
+
+const formData=new FormData();
+
+formData.append("pdf",file);
+
+const response=await fetch("/upload",{
+
+method:"POST",
+body:formData
+
+});
+
+const result=await response.json();
+
+document.getElementById("uploadStatus").innerText=result.message;
+
+}
+
+
+
+async function askQuestion(){
+
+const question=document.getElementById("question").value;
+
+addMessage(question,"user");
+
+const response=await fetch("/ask",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+question:question
+})
+
+});
+
+const data=await response.json();
+
+addMessage(data.answer,"bot");
+
+document.getElementById("question").value="";
+
+}
+
+
+
+function addMessage(text,type){
+
+const chatbox=document.getElementById("chatbox");
+
+const msg=document.createElement("div");
+
+msg.classList.add("message");
+
+msg.classList.add(type);
+
+msg.innerText=text;
+
+chatbox.appendChild(msg);
+
+chatbox.scrollTop=chatbox.scrollHeight;
+
+}
+
+</script>
+
+
+</body>
+
+  </html>
